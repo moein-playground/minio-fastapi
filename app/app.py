@@ -3,6 +3,8 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 from fastapi import FastAPI, UploadFile
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse
+from minio import Minio
+from minio.error import S3Error
 import uvicorn
 import json
 import os
@@ -12,7 +14,17 @@ app = FastAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR,"uploads")
-
+client = Minio(
+        "localhost:9000",
+        access_key="pJRORdLuySfaAuKk",
+        secret_key="o98yqy5OZ4TTf1fIPS8EqXbrpkRyq9KK",
+        secure=False
+    )
+found = client.bucket_exists("moein")
+if not found:
+    client.make_bucket("moein")
+else:
+    print("Bucket 'moein' already exists")
 
 @app.get("/")
 async def root():
@@ -40,7 +52,13 @@ def upload_n_download(file:UploadFile):
 
       with open(SAVE_FILE_PATH, "w") as f:
         yaml.dump(json_data, f)
-
+      client.fput_object(
+          "moein", new_filename, SAVE_FILE_PATH,
+      )
+      print(
+          "'/Users/moein/Desktop/playGrounds/fastapi_minio/app/test.json' is successfully uploaded as "
+          "object 'asiaphotos-2015.zip' to bucket 'moein'."
+      )
 
       return FileResponse(path=SAVE_FILE_PATH, media_type = "application/cotet-stream", filename = new_filename)
 
